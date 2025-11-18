@@ -271,16 +271,3 @@ fn run_dev_mode() -> anyhow::Result<()> {
 
     Ok(())
 }
-"#;
-    fs::write(project_path.join("rapid-rs-cli/src/main.rs"), main_rs)?;
-
-    println!("✅ CLI tool created!");
-
-    Ok(())
-}
-"#;
-
-    fs::write(project_path.join("rapid-rs-cli/src/main.rs"), cli_main)?;
-
-    Ok(())
-}
