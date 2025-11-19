@@ -41,9 +41,9 @@ cargo run
 ```
 
 Your API is now running at:
-- 🌐 **http://localhost:3000** - API endpoints
-- 📚 **http://localhost:3000/docs** - Swagger UI
-- 💚 **http://localhost:3000/health** - Health check
+- 🌐 **http://localhost:8080** - API endpoints
+- 📚 **http://localhost:8080/docs** - Swagger UI
+- 💚 **http://localhost:8080/health** - Health check
 
 ### Your First Endpoint
 
@@ -147,7 +147,7 @@ Configuration is loaded from multiple sources (in order of priority):
 # config/default.toml
 [server]
 host = "0.0.0.0"
-port = 3000
+port = 8080
 
 [database]
 url = "postgres://localhost/mydb"
