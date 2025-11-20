@@ -191,7 +191,7 @@ max_connections = 10
 
 Override with environment variables:
 ```bash
-APP__SERVER__PORT=8080 cargo run
+APP__SERVER__PORT=3000 cargo run
 ```
 
 ## Examples
