@@ -10,6 +10,7 @@ documentation.workspace = true
 keywords.workspace = true
 categories.workspace = true
 description = "Zero-config, batteries-included web framework for Rust - FastAPI meets Spring Boot"
+readme = "../README.md"
 
 [dependencies]
 axum.workspace = true
@@ -28,4 +29,8 @@ anyhow.workspace = true
 config.workspace = true
 validator.workspace = true
 utoipa.workspace = true
-utoipa-swagger-ui.workspace = true
+utoipa-swagger-ui = { workspace = true, optional = true }
+
+[features]
+default = ["swagger-ui"]
+swagger-ui = ["utoipa-swagger-ui"]

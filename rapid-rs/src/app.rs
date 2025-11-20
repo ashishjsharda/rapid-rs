@@ -10,6 +10,8 @@ use tower_http::{
 };
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use utoipa::OpenApi;
+
+#[cfg(feature = "swagger-ui")]
 use utoipa_swagger_ui::SwaggerUi;
 
 use crate::config::AppConfig;
@@ -79,12 +81,20 @@ impl App {
         )]
         struct ApiDoc;
 
+        // Add Swagger UI if feature is enabled
+        #[cfg(feature = "swagger-ui")]
         let swagger = SwaggerUi::new("/docs").url("/api-docs/openapi.json", ApiDoc::openapi());
 
         // Build the router with middleware
-        self.router = Router::new()
+        #[cfg(feature = "swagger-ui")]
+        let router_with_docs = Router::new()
             .merge(swagger)
-            .merge(health_router)
+            .merge(health_router);
+
+        #[cfg(not(feature = "swagger-ui"))]
+        let router_with_docs = health_router;
+
+        self.router = router_with_docs
             .merge(self.router)
             .layer(TraceLayer::new_for_http())
             .layer(cors);
@@ -113,7 +123,13 @@ impl App {
         let addr = SocketAddr::from(([0, 0, 0, 0], config.server.port));
 
         tracing::info!("🎯 Server starting on http://{}", addr);
+        
+        #[cfg(feature = "swagger-ui")]
         tracing::info!("📚 Swagger UI available at http://{}/docs", addr);
+        
+        #[cfg(not(feature = "swagger-ui"))]
+        tracing::info!("💡 Tip: Enable 'swagger-ui' feature for API docs at /docs");
+        
         tracing::info!("💚 Health check available at http://{}/health", addr);
 
         let listener = tokio::net::TcpListener::bind(addr).await?;

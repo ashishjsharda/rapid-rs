@@ -29,6 +29,18 @@ Building web APIs in Rust shouldn't require wiring together 10+ crates and writi
 cargo install rapid-rs-cli
 ```
 
+**Note:** By default, rapid-rs includes Swagger UI for API documentation. If you encounter installation issues, you can install without it:
+
+```bash
+cargo add rapid-rs --no-default-features
+```
+
+To enable Swagger UI later:
+
+```bash
+cargo add rapid-rs --features swagger-ui
+```
+
 ### Create Your First API
 
 ```bash
@@ -41,9 +53,9 @@ cargo run
 ```
 
 Your API is now running at:
-- 🌐 **http://localhost:3000** - API endpoints
-- 📚 **http://localhost:3000/docs** - Swagger UI
-- 💚 **http://localhost:3000/health** - Health check
+- 🌐 **http://localhost:8080** - API endpoints
+- 📚 **http://localhost:8080/docs** - Swagger UI
+- 💚 **http://localhost:8080/health** - Health check
 
 ### Your First Endpoint
 
@@ -119,7 +131,30 @@ That's it! You get:
 - **CORS** - Sensible defaults, fully configurable
 - **Logging & Tracing** - Structured logging with request correlation
 - **Health Checks** - `/health` endpoint for orchestration
-- **OpenAPI/Swagger** - Auto-generated docs at `/docs`
+- **OpenAPI/Swagger** - Auto-generated docs at `/docs` (with `swagger-ui` feature, enabled by default)
+
+### 📚 Swagger UI Configuration
+
+**Enabled by default** - Swagger UI is included with the default features:
+
+```toml
+[dependencies]
+rapid-rs = "0.1"  # Includes Swagger UI
+```
+
+**Disable if needed** (smaller binary, faster compile):
+
+```toml
+[dependencies]
+rapid-rs = { version = "0.1", default-features = false }
+```
+
+**Re-enable later**:
+
+```toml
+[dependencies]
+rapid-rs = { version = "0.1", features = ["swagger-ui"] }
+```
 
 ### 📦 CLI Tool
 
