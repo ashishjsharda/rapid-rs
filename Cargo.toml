@@ -3,7 +3,7 @@ members = ["rapid-rs", "rapid-rs-cli", "rapid-rs-macros", "examples/*"]
 resolver = "2"
 
 [workspace.package]
-version = "0.1.4"
+version = "0.2.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 authors = ["Ashish Sharda <ashishjsharda@gmail.com>"]
@@ -31,3 +31,8 @@ config = "0.14"
 validator = { version = "0.18", features = ["derive"] }
 utoipa = { version = "4.0", features = ["axum_extras", "chrono", "uuid"] }
 utoipa-swagger-ui = { version = "6.0", features = ["axum"] }
+
+# Auth dependencies
+jsonwebtoken = "9.3"
+argon2 = "0.5"
+async-trait = "0.1"

@@ -1,0 +1,16 @@
+[package]
+name = "auth-api-example"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+rapid-rs = { path = "../../rapid-rs", features = ["auth"] }
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+uuid.workspace = true
+chrono.workspace = true
+validator.workspace = true
+utoipa.workspace = true
+axum.workspace = true

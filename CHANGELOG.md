@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2025-11-22
+
+### Added
+- 🔐 **Authentication & Authorization (Phase 2)**
+  - JWT-based authentication with access and refresh tokens
+  - Password hashing with Argon2id (industry-standard security)
+  - `AuthUser` extractor for protected routes
+  - `OptionalAuthUser` for optional authentication
+  - Role-based access control with `require_role()`, `require_any_role()`, `require_all_roles()`
+  - `UserStore` trait for custom database backends
+  - `InMemoryUserStore` for development/testing
+  - Built-in auth routes: `/auth/login`, `/auth/register`, `/auth/refresh`, `/auth/logout`, `/auth/me`
+  - Password strength validation
+  - Configurable token expiry times
+  - Environment variable configuration (`AUTH_JWT_SECRET`, etc.)
+- New `auth-api` example demonstrating authentication
+- `AUTH.md` documentation for authentication features
+
+### Changed
+- Auth feature is enabled by default (use `default-features = false` to disable)
+- Updated prelude to include `AuthUser` and `AuthConfig` when auth feature is enabled
+
 ## [0.1.4] - 2025-11-19
 
 ### Fixed
