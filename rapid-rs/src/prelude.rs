@@ -23,3 +23,7 @@ pub use uuid::Uuid;
 pub use chrono::{DateTime, Utc};
 
 pub use utoipa::ToSchema;
+
+// Auth re-exports (when auth feature is enabled)
+#[cfg(feature = "auth")]
+pub use crate::auth::{AuthUser, AuthConfig};
