@@ -196,7 +196,7 @@ APP__SERVER__PORT=8080 cargo run
 
 ## Examples
 
-Check out the [examples](./examples) directory for:
+Check out the [examples](https://github.com/ashishjsharda/rapid-rs/tree/main/examples) directory for:
 
 - ✅ **REST API** - Full CRUD with validation
 - 🔜 **GraphQL API** - Coming soon
