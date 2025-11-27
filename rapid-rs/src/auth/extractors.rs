@@ -14,7 +14,7 @@ use super::{config::AuthConfig, jwt::{verify_access_token, Claims}};
 
 /// Authenticated user extracted from JWT token
 /// 
-/// Use this extractor in your handlers to require authentication
+/// AS:Use this extractor in your handlers to require authentication
 /// and access user information.
 /// 
 /// # Example
@@ -174,15 +174,15 @@ where
     type Rejection = AuthError;
     
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
-        // Get AuthConfig from extensions (set by middleware)
-        let auth_config = parts
-            .extensions
-            .get::<AuthConfig>()
-            .cloned()
-            .ok_or_else(|| {
-                tracing::error!("AuthConfig not found in extensions. Did you call .with_auth()?");
-                AuthError::Internal("Auth not configured".to_string())
-            })?;
+        // Try to get AuthConfig from extensions first (if set by middleware)
+        // Otherwise, fall back to loading from environment
+        let auth_config = if let Some(config) = parts.extensions.get::<AuthConfig>() {
+            config.clone()
+        } else {
+            // Fall back to loading from environment
+            tracing::debug!("AuthConfig not in extensions, loading from environment");
+            AuthConfig::from_env()
+        };
         
         // Extract Authorization header
         let auth_header = parts

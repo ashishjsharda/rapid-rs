@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.0] - 2025-11-22
+## [0.2.0] - 2025-11-27
 
 ### Added
 - 🔐 **Authentication & Authorization (Phase 2)**
@@ -21,11 +21,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Configurable token expiry times
   - Environment variable configuration (`AUTH_JWT_SECRET`, etc.)
 - New `auth-api` example demonstrating authentication
-- `AUTH.md` documentation for authentication features
+- `AUTH.md` comprehensive documentation for authentication features
 
 ### Changed
 - Auth feature is enabled by default (use `default-features = false` to disable)
 - Updated prelude to include `AuthUser` and `AuthConfig` when auth feature is enabled
+
+### Fixed
+- `AuthUser` extractor now automatically falls back to environment config when not explicitly provided
+- Improved out-of-the-box experience - no middleware configuration required for basic auth
 
 ## [0.1.4] - 2025-11-19
 
