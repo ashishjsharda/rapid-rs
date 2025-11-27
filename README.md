@@ -7,6 +7,41 @@
 [![Documentation](https://docs.rs/rapid-rs/badge.svg)](https://docs.rs/rapid-rs)
 [![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](LICENSE)
 
+<!-- ⭐ NEW SECTION: Highlight v0.2.0 -->
+## 🆕 What's New in v0.2.0
+
+**Complete JWT Authentication System!** 🔐
+```rust
+use rapid_rs::prelude::*;
+use rapid_rs::auth::{AuthConfig, auth_routes, AuthUser};
+
+// Protected route - authentication required
+async fn protected(user: AuthUser) -> impl IntoResponse {
+    format!("Hello, {}!", user.email)
+}
+
+#[tokio::main]
+async fn main() {
+    App::new()
+        .auto_configure()
+        .mount(auth_routes(AuthConfig::from_env()))
+        .route("/protected", get(protected))
+        .run()
+        .await
+        .unwrap();
+}
+```
+
+**Features:**
+- ✅ JWT tokens (access + refresh)
+- ✅ Argon2id password hashing
+- ✅ Role-based access control
+- ✅ Dead simple `AuthUser` extractor
+- ✅ Full documentation: [AUTH.md](AUTH.md)
+
+---
+<!-- End of new section -->
+
 ## Why rapid-rs?
 
 Building web APIs in Rust shouldn't require wiring together 10+ crates and writing hundreds of lines of boilerplate. **rapid-rs** gives you the productivity of FastAPI and Spring Boot, with Rust's performance and type safety.
@@ -14,6 +49,7 @@ Building web APIs in Rust shouldn't require wiring together 10+ crates and writi
 ### ⚡ Features
 
 - 🎯 **Zero Config** - Database, migrations, CORS, logging work out of the box
+- 🔐 **Built-in Authentication** - JWT auth, password hashing, RBAC (NEW in v0.2.0!) <!-- ⭐ UPDATED -->
 - 🔒 **Type-Safe** - Compile-time guarantees for routes, validation, and serialization
 - 📚 **Auto-Generated Docs** - Swagger UI and OpenAPI specs from your code
 - ✅ **Built-in Validation** - Request validation with helpful error messages
@@ -24,25 +60,21 @@ Building web APIs in Rust shouldn't require wiring together 10+ crates and writi
 ## Quick Start
 
 ### Installation
-
 ```bash
 cargo install rapid-rs-cli
 ```
 
 **Note:** By default, rapid-rs includes Swagger UI for API documentation. If you encounter installation issues, you can install without it:
-
 ```bash
 cargo add rapid-rs --no-default-features
 ```
 
 To enable Swagger UI later:
-
 ```bash
 cargo add rapid-rs --features swagger-ui
 ```
 
 ### Create Your First API
-
 ```bash
 # Create a new project
 rapid new myapi
@@ -58,7 +90,6 @@ Your API is now running at:
 - 💚 **http://localhost:8080/health** - Health check
 
 ### Your First Endpoint
-
 ```rust
 use rapid_rs::prelude::*;
 
@@ -125,6 +156,7 @@ That's it! You get:
 ### 🎁 Out of the Box
 
 - **Configuration Management** - TOML files + environment variables
+- **Authentication & Authorization** - JWT-based auth with role-based access control (NEW!) <!-- ⭐ UPDATED -->
 - **Database Integration** - PostgreSQL with connection pooling (SQLx)
 - **Request Validation** - Derive-based validation with helpful errors
 - **Error Handling** - Centralized error handling with proper HTTP status codes
@@ -136,28 +168,24 @@ That's it! You get:
 ### 📚 Swagger UI Configuration
 
 **Enabled by default** - Swagger UI is included with the default features:
-
 ```toml
 [dependencies]
-rapid-rs = "0.1"  # Includes Swagger UI
+rapid-rs = "0.2"  # Includes Swagger UI and Auth <!-- ⭐ UPDATED version -->
 ```
 
 **Disable if needed** (smaller binary, faster compile):
-
 ```toml
 [dependencies]
-rapid-rs = { version = "0.1", default-features = false }
+rapid-rs = { version = "0.2", default-features = false } <!-- ⭐ UPDATED version -->
 ```
 
 **Re-enable later**:
-
 ```toml
 [dependencies]
-rapid-rs = { version = "0.1", features = ["swagger-ui"] }
+rapid-rs = { version = "0.2", features = ["swagger-ui", "auth"] } <!-- ⭐ UPDATED version and features -->
 ```
 
 ### 📦 CLI Tool
-
 ```bash
 # Create new project with template
 rapid new myapi --template rest-api
@@ -177,12 +205,11 @@ Configuration is loaded from multiple sources (in order of priority):
 1. `config/default.toml` - Base configuration
 2. `config/local.toml` - Local overrides (gitignored)
 3. Environment variables - Prefixed with `APP__`
-
 ```toml
 # config/default.toml
 [server]
 host = "0.0.0.0"
-port = 3000
+port = 8080 <!-- ⭐ UPDATED from 3000 -->
 
 [database]
 url = "postgres://localhost/mydb"
@@ -194,26 +221,38 @@ Override with environment variables:
 APP__SERVER__PORT=8080 cargo run
 ```
 
+<!-- ⭐ NEW SECTION: Auth configuration -->
+### Authentication Configuration
+
+Set your JWT secret via environment variable (required in production):
+```bash
+export AUTH_JWT_SECRET="your-super-secret-key-at-least-32-characters-long"
+```
+
+See [AUTH.md](AUTH.md) for complete authentication documentation.
+<!-- End of new section -->
+
 ## Examples
 
 Check out the [examples](https://github.com/ashishjsharda/rapid-rs/tree/main/examples) directory for:
 
 - ✅ **REST API** - Full CRUD with validation
+- ✅ **Auth API** - JWT authentication with protected routes (NEW!) <!-- ⭐ UPDATED -->
 - 🔜 **GraphQL API** - Coming soon
 - 🔜 **gRPC Service** - Coming soon
 - 🔜 **WebSocket Chat** - Coming soon
 
 ## Roadmap
 
-### Phase 1 (Current)
+### Phase 1 ✅ Complete
 - [x] Core framework with auto-configuration
 - [x] Request validation
 - [x] OpenAPI generation
 - [x] CLI tool for project scaffolding
 - [x] Hot reload support
 
-### Phase 2 (Next)
-- [ ] Authentication & Authorization (JWT, sessions)
+### Phase 2 ✅ Complete (v0.2.0) <!-- ⭐ UPDATED -->
+- [x] Authentication & Authorization (JWT, sessions) <!-- ⭐ UPDATED -->
 - [ ] Database migrations management
 - [ ] Testing utilities
 - [ ] More templates (GraphQL, gRPC)
@@ -229,15 +268,18 @@ Check out the [examples](https://github.com/ashishjsharda/rapid-rs/tree/main/exa
 Contributions are welcome! This is an early-stage project with lots of opportunities to make an impact.
 
 ### Development Setup
-
 ```bash
 git clone https://github.com/ashishjsharda/rapid-rs
 cd rapid-rs
 cargo build
 cargo test
 
-# Run the example
+# Run the REST API example
 cd examples/rest-api
+cargo run
+
+# Run the Auth API example <!-- ⭐ NEW -->
+cd examples/auth-api
 cargo run
 ```
 
@@ -263,6 +305,7 @@ cargo run
 - Logging setup
 - CORS
 - Project structure
+- Authentication (NEW: now included!) <!-- ⭐ UPDATED -->
 
 **rapid-rs** gives you all of this out of the box, while still giving you access to the full power of Axum when you need it.
 
