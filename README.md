@@ -229,7 +229,7 @@ Set your JWT secret via environment variable (required in production):
 export AUTH_JWT_SECRET="your-super-secret-key-at-least-32-characters-long"
 ```
 
-See [AUTH.md](AUTH.md) for complete authentication documentation.
+See [AUTH.md](https://github.com/ashishjsharda/rapid-rs/blob/main/AUTH.md) for complete authentication documentation.
 <!-- End of new section -->
 
 ## Examples
@@ -313,8 +313,8 @@ cargo run
 
 Licensed under either of:
 
-- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
-- MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
+- Apache License, Version 2.0 ([LICENSE-APACHE](https://github.com/ashishjsharda/rapid-rs/blob/main/LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
+- MIT license ([LICENSE-MIT](https://github.com/ashishjsharda/rapid-rs/blob/main/LICENSE-MIT) or http://opensource.org/licenses/MIT)
 
 at your option.
 
