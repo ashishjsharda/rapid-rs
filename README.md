@@ -209,7 +209,7 @@ Configuration is loaded from multiple sources (in order of priority):
 # config/default.toml
 [server]
 host = "0.0.0.0"
-port = 8080 <!-- ⭐ UPDATED from 3000 -->
+port = 8080 
 
 [database]
 url = "postgres://localhost/mydb"
