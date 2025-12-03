@@ -1,13 +1,6 @@
-use axum::{
-    Router,
-    extract::Request,
-    http::Method,
-};
+use axum::{http::Method, Router};
 use std::net::SocketAddr;
-use tower_http::{
-    cors::CorsLayer,
-    trace::TraceLayer,
-};
+use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use utoipa::OpenApi;
 
@@ -55,18 +48,26 @@ impl App {
 
         // Setup CORS
         let cors = CorsLayer::new()
-            .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE, Method::PATCH])
+            .allow_methods([
+                Method::GET,
+                Method::POST,
+                Method::PUT,
+                Method::DELETE,
+                Method::PATCH,
+            ])
             .allow_origin(tower_http::cors::Any)
             .allow_headers(tower_http::cors::Any);
 
         // Add health endpoint
-        let health_router = Router::new()
-            .route("/health", axum::routing::get(|| async { 
+        let health_router = Router::new().route(
+            "/health",
+            axum::routing::get(|| async {
                 axum::Json(serde_json::json!({
                     "status": "healthy",
                     "timestamp": chrono::Utc::now()
                 }))
-            }));
+            }),
+        );
 
         // Setup Swagger UI with a basic OpenAPI spec
         #[derive(OpenApi)]
@@ -87,9 +88,7 @@ impl App {
 
         // Build the router with middleware
         #[cfg(feature = "swagger-ui")]
-        let router_with_docs = Router::new()
-            .merge(swagger)
-            .merge(health_router);
+        let router_with_docs = Router::new().merge(swagger).merge(health_router);
 
         #[cfg(not(feature = "swagger-ui"))]
         let router_with_docs = health_router;
@@ -119,17 +118,17 @@ impl App {
 
     /// Run the application
     pub async fn run(self) -> Result<(), Box<dyn std::error::Error>> {
-        let config = self.config.unwrap_or_else(|| AppConfig::default());
+        let config = self.config.unwrap_or_default();
         let addr = SocketAddr::from(([0, 0, 0, 0], config.server.port));
 
         tracing::info!("🎯 Server starting on http://{}", addr);
-        
+
         #[cfg(feature = "swagger-ui")]
         tracing::info!("📚 Swagger UI available at http://{}/docs", addr);
-        
+
         #[cfg(not(feature = "swagger-ui"))]
         tracing::info!("💡 Tip: Enable 'swagger-ui' feature for API docs at /docs");
-        
+
         tracing::info!("💚 Health check available at http://{}/health", addr);
 
         let listener = tokio::net::TcpListener::bind(addr).await?;

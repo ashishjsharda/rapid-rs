@@ -17,12 +17,12 @@ enum Commands {
     New {
         /// Project name
         name: String,
-        
+
         /// Template to use (rest-api, graphql, grpc)
         #[arg(short, long, default_value = "rest-api")]
         template: String,
     },
-    
+
     /// Run the project in development mode with hot reload
     Dev,
 }
@@ -44,7 +44,7 @@ fn main() -> anyhow::Result<()> {
 
 fn create_project(name: &str, template: &str) -> anyhow::Result<()> {
     println!("🚀 Creating new rapid-rs project: {}", name);
-    
+
     if template != "rest-api" {
         anyhow::bail!("Only 'rest-api' template is currently supported");
     }
@@ -94,7 +94,7 @@ struct User {
 struct CreateUserRequest {
     #[validate(email(message = "Invalid email format"))]
     email: String,
-    
+
     #[validate(length(min = 2, max = 100))]
     name: String,
 }
@@ -241,20 +241,18 @@ cargo watch -x run
 
 fn run_dev_mode() -> anyhow::Result<()> {
     println!("🔥 Starting development mode with hot reload...");
-    
+
     // Check if cargo-watch is installed
-    let status = Command::new("cargo")
-        .args(&["watch", "--version"])
-        .output();
-    
+    let status = Command::new("cargo").args(["watch", "--version"]).output();
+
     if status.is_err() {
         println!("⚠️  cargo-watch is not installed.");
         println!("Installing cargo-watch...");
-        
+
         let install_status = Command::new("cargo")
-            .args(&["install", "cargo-watch"])
+            .args(["install", "cargo-watch"])
             .status()?;
-        
+
         if !install_status.success() {
             anyhow::bail!("Failed to install cargo-watch");
         }
@@ -262,7 +260,7 @@ fn run_dev_mode() -> anyhow::Result<()> {
 
     // Run cargo watch
     let status = Command::new("cargo")
-        .args(&["watch", "-x", "run"])
+        .args(["watch", "-x", "run"])
         .status()?;
 
     if !status.success() {

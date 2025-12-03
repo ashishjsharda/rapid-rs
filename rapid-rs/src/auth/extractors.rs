@@ -3,30 +3,32 @@
 use axum::{
     async_trait,
     extract::FromRequestParts,
-    http::{request::Parts, header::AUTHORIZATION, StatusCode},
+    http::{header::AUTHORIZATION, request::Parts, StatusCode},
     response::{IntoResponse, Response},
-    Json, RequestPartsExt,
+    Json,
 };
-use axum::extract::State;
 use serde::Serialize;
 
-use super::{config::AuthConfig, jwt::{verify_access_token, Claims}};
+use super::{
+    config::AuthConfig,
+    jwt::{verify_access_token, Claims},
+};
 
 /// Authenticated user extracted from JWT token
-/// 
+///
 /// AS:Use this extractor in your handlers to require authentication
 /// and access user information.
-/// 
+///
 /// # Example
-/// 
+///
 /// ```rust,ignore
 /// use rapid_rs::prelude::*;
 /// use rapid_rs::auth::AuthUser;
-/// 
+///
 /// async fn protected_route(user: AuthUser) -> impl IntoResponse {
 ///     format!("Hello, {}!", user.email)
 /// }
-/// 
+///
 /// async fn admin_only(user: AuthUser) -> Result<impl IntoResponse, ApiError> {
 ///     user.require_role("admin")?;
 ///     Ok("Welcome, admin!")
@@ -36,13 +38,13 @@ use super::{config::AuthConfig, jwt::{verify_access_token, Claims}};
 pub struct AuthUser {
     /// User ID (from JWT subject claim)
     pub id: String,
-    
+
     /// User email
     pub email: String,
-    
+
     /// User roles
     pub roles: Vec<String>,
-    
+
     /// Full JWT claims (for advanced use cases)
     pub claims: Claims,
 }
@@ -57,22 +59,22 @@ impl AuthUser {
             claims,
         }
     }
-    
+
     /// Check if user has a specific role
     pub fn has_role(&self, role: &str) -> bool {
         self.roles.iter().any(|r| r == role)
     }
-    
+
     /// Check if user has any of the specified roles
     pub fn has_any_role(&self, roles: &[&str]) -> bool {
         roles.iter().any(|role| self.has_role(role))
     }
-    
+
     /// Check if user has all of the specified roles
     pub fn has_all_roles(&self, roles: &[&str]) -> bool {
         roles.iter().all(|role| self.has_role(role))
     }
-    
+
     /// Require a specific role, returning an error if not present
     pub fn require_role(&self, role: &str) -> Result<(), AuthError> {
         if self.has_role(role) {
@@ -81,7 +83,7 @@ impl AuthUser {
             Err(AuthError::Forbidden(format!("Role '{}' required", role)))
         }
     }
-    
+
     /// Require any of the specified roles
     pub fn require_any_role(&self, roles: &[&str]) -> Result<(), AuthError> {
         if self.has_any_role(roles) {
@@ -93,7 +95,7 @@ impl AuthUser {
             )))
         }
     }
-    
+
     /// Require all of the specified roles
     pub fn require_all_roles(&self, roles: &[&str]) -> Result<(), AuthError> {
         if self.has_all_roles(roles) {
@@ -139,23 +141,15 @@ impl IntoResponse for AuthError {
                 "INVALID_TOKEN",
                 "Invalid or expired token".to_string(),
             ),
-            AuthError::Forbidden(msg) => (
-                StatusCode::FORBIDDEN,
-                "FORBIDDEN",
-                msg,
-            ),
-            AuthError::Internal(msg) => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "AUTH_ERROR",
-                msg,
-            ),
+            AuthError::Forbidden(msg) => (StatusCode::FORBIDDEN, "FORBIDDEN", msg),
+            AuthError::Internal(msg) => (StatusCode::INTERNAL_SERVER_ERROR, "AUTH_ERROR", msg),
         };
-        
+
         let body = AuthErrorResponse {
             code: code.to_string(),
             message,
         };
-        
+
         (status, Json(body)).into_response()
     }
 }
@@ -172,7 +166,7 @@ where
     S: Send + Sync,
 {
     type Rejection = AuthError;
-    
+
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
         // Try to get AuthConfig from extensions first (if set by middleware)
         // Otherwise, fall back to loading from environment
@@ -183,36 +177,36 @@ where
             tracing::debug!("AuthConfig not in extensions, loading from environment");
             AuthConfig::from_env()
         };
-        
+
         // Extract Authorization header
         let auth_header = parts
             .headers
             .get(AUTHORIZATION)
             .and_then(|value| value.to_str().ok())
             .ok_or(AuthError::MissingToken)?;
-        
+
         // Parse Bearer token
         let token = auth_header
             .strip_prefix("Bearer ")
             .ok_or(AuthError::MissingToken)?;
-        
+
         // Verify token and extract claims
-        let claims = verify_access_token(token, &auth_config)
-            .map_err(|_| AuthError::InvalidToken)?;
-        
+        let claims =
+            verify_access_token(token, &auth_config).map_err(|_| AuthError::InvalidToken)?;
+
         Ok(AuthUser::from_claims(claims))
     }
 }
 
 /// Optional authenticated user - doesn't fail if not authenticated
-/// 
+///
 /// Useful for routes that behave differently for authenticated vs anonymous users.
-/// 
+///
 /// # Example
-/// 
+///
 /// ```rust,ignore
 /// use rapid_rs::auth::OptionalAuthUser;
-/// 
+///
 /// async fn maybe_personalized(user: OptionalAuthUser) -> impl IntoResponse {
 ///     match user.0 {
 ///         Some(user) => format!("Hello, {}!", user.email),
@@ -229,7 +223,7 @@ where
     S: Send + Sync,
 {
     type Rejection = std::convert::Infallible;
-    
+
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let user = AuthUser::from_request_parts(parts, state).await.ok();
         Ok(OptionalAuthUser(user))
@@ -240,7 +234,7 @@ where
 mod tests {
     use super::*;
     use crate::auth::jwt::Claims;
-    
+
     fn mock_claims() -> Claims {
         Claims {
             sub: "user-123".to_string(),
@@ -255,26 +249,26 @@ mod tests {
             jti: "test-jti".to_string(),
         }
     }
-    
+
     #[test]
     fn test_auth_user_roles() {
         let user = AuthUser::from_claims(mock_claims());
-        
+
         assert!(user.has_role("user"));
         assert!(user.has_role("editor"));
         assert!(!user.has_role("admin"));
-        
+
         assert!(user.has_any_role(&["admin", "user"]));
         assert!(!user.has_any_role(&["admin", "superuser"]));
-        
+
         assert!(user.has_all_roles(&["user", "editor"]));
         assert!(!user.has_all_roles(&["user", "admin"]));
     }
-    
+
     #[test]
     fn test_require_role() {
         let user = AuthUser::from_claims(mock_claims());
-        
+
         assert!(user.require_role("user").is_ok());
         assert!(user.require_role("admin").is_err());
     }

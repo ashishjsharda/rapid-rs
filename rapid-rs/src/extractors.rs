@@ -8,8 +8,6 @@ use axum::{
 use serde::{de::DeserializeOwned, Serialize};
 use validator::Validate;
 
-use crate::error::ApiError;
-
 /// Extractor that deserializes and validates JSON payloads
 ///
 /// # Example
@@ -62,13 +60,13 @@ where
             .await
             .map_err(|rejection| {
                 tracing::error!("JSON deserialization failed: {:?}", rejection);
-                
+
                 let error_response = ValidationErrorResponse {
                     code: "INVALID_JSON".to_string(),
                     message: "Invalid JSON payload".to_string(),
                     errors: vec![],
                 };
-                
+
                 (StatusCode::BAD_REQUEST, Json(error_response)).into_response()
             })?;
 
