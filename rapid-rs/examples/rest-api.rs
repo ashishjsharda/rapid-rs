@@ -1,3 +1,7 @@
+//! Auth API Example
+//! Run:
+//!   cargo run --example rest-api
+
 use rapid_rs::prelude::*;
 
 #[derive(Serialize, Deserialize, Clone, ToSchema)]
@@ -12,20 +16,28 @@ struct User {
 struct CreateUserRequest {
     #[validate(email(message = "Invalid email format"))]
     email: String,
-    
-    #[validate(length(min = 2, max = 100, message = "Name must be between 2 and 100 characters"))]
+
+    #[validate(length(
+        min = 2,
+        max = 100,
+        message = "Name must be between 2 and 100 characters"
+    ))]
     name: String,
 }
 
 #[derive(Deserialize, Validate, ToSchema)]
 struct UpdateUserRequest {
-    #[validate(length(min = 2, max = 100, message = "Name must be between 2 and 100 characters"))]
+    #[validate(length(
+        min = 2,
+        max = 100,
+        message = "Name must be between 2 and 100 characters"
+    ))]
     name: Option<String>,
 }
 
 // In-memory "database" for demo purposes
-use std::sync::{Arc, Mutex};
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 
 type Database = Arc<Mutex<HashMap<Uuid, User>>>;
 
@@ -42,7 +54,7 @@ async fn create_user(
     };
 
     db.lock().unwrap().insert(user.id, user.clone());
-    
+
     Ok(Json(user))
 }
 
@@ -61,7 +73,7 @@ async fn get_user(
     let user = db
         .get(&id)
         .ok_or_else(|| ApiError::NotFound(format!("User with id {} not found", id)))?;
-    
+
     Ok(Json(user.clone()))
 }
 
@@ -75,11 +87,11 @@ async fn update_user(
     let user = db
         .get_mut(&id)
         .ok_or_else(|| ApiError::NotFound(format!("User with id {} not found", id)))?;
-    
+
     if let Some(name) = payload.name {
         user.name = name;
     }
-    
+
     Ok(Json(user.clone()))
 }
 
@@ -92,7 +104,7 @@ async fn delete_user(
     let user = db
         .remove(&id)
         .ok_or_else(|| ApiError::NotFound(format!("User with id {} not found", id)))?;
-    
+
     Ok(Json(user))
 }
 

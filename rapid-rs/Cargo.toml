@@ -25,7 +25,6 @@ sqlx.workspace = true
 uuid.workspace = true
 chrono.workspace = true
 thiserror.workspace = true
-anyhow.workspace = true
 config.workspace = true
 validator.workspace = true
 utoipa.workspace = true
