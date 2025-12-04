@@ -1,24 +1,25 @@
 //! Authentication middleware for protecting routes
 
-use axum::{
-    body::Body,
-    extract::Request,
-    http::{Response, StatusCode},
-    middleware::Next,
-    response::IntoResponse,
-    Json,
-};
+use std::future::Future;
+use std::pin::Pin;
+use std::task::{Context, Poll};
+
+use axum::extract::State;
+use axum::http::header::AUTHORIZATION;
+use axum::{extract::Request, http::StatusCode, middleware::Next, response::IntoResponse, Json};
 use serde::Serialize;
-use std::sync::Arc;
+use tower::{Layer, Service};
+
+use crate::auth::Claims;
 
 use super::config::AuthConfig;
 use super::jwt::verify_access_token;
 
 /// Middleware that injects AuthConfig into request extensions
-/// 
+///
 /// This must be applied before using AuthUser extractor.
 pub async fn inject_auth_config(
-    config: AuthConfig,
+    State(config): State<AuthConfig>,
     mut request: Request,
     next: Next,
 ) -> impl IntoResponse {
@@ -27,17 +28,17 @@ pub async fn inject_auth_config(
 }
 
 /// Middleware layer for requiring authentication
-/// 
+///
 /// Use this to protect entire route groups.
-/// 
+///
 /// # Example
-/// 
+///
 /// ```rust,ignore
 /// use rapid_rs::auth::{RequireAuth, AuthConfig};
 /// use axum::{Router, routing::get, middleware};
-/// 
+///
 /// let config = AuthConfig::default();
-/// 
+///
 /// let protected_routes = Router::new()
 ///     .route("/profile", get(get_profile))
 ///     .route("/settings", get(get_settings))
@@ -58,19 +59,16 @@ impl RequireAuth {
     /// Middleware function that requires a valid JWT token
     pub async fn middleware(
         config: axum::extract::State<AuthConfig>,
-        request: Request,
+        mut request: Request,
         next: Next,
     ) -> impl IntoResponse {
-        // Extract Authorization header
         let auth_header = request
             .headers()
             .get("Authorization")
             .and_then(|value| value.to_str().ok());
-        
+
         let token = match auth_header {
-            Some(header) if header.starts_with("Bearer ") => {
-                &header[7..]
-            }
+            Some(header) if header.starts_with("Bearer ") => &header[7..],
             _ => {
                 return (
                     StatusCode::UNAUTHORIZED,
@@ -78,37 +76,37 @@ impl RequireAuth {
                         code: "MISSING_TOKEN".to_string(),
                         message: "Authorization header missing or invalid".to_string(),
                     }),
-                ).into_response();
+                )
+                    .into_response();
             }
         };
-        
-        // Verify token
+
         match verify_access_token(token, &config) {
-            Ok(_claims) => {
-                // Token is valid, proceed with request
+            Ok(claims) => {
+                // Store claims so RequireRoles doesn't have to decode again
+                request.extensions_mut().insert(claims);
                 next.run(request).await
             }
-            Err(_) => {
-                (
-                    StatusCode::UNAUTHORIZED,
-                    Json(AuthErrorResponse {
-                        code: "INVALID_TOKEN".to_string(),
-                        message: "Invalid or expired token".to_string(),
-                    }),
-                ).into_response()
-            }
+            Err(_) => (
+                StatusCode::UNAUTHORIZED,
+                Json(AuthErrorResponse {
+                    code: "INVALID_TOKEN".to_string(),
+                    message: "Invalid or expired token".to_string(),
+                }),
+            )
+                .into_response(),
         }
     }
 }
 
 /// Middleware that requires specific roles
-/// 
+///
 /// # Example
-/// 
+///
 /// ```rust,ignore
 /// use rapid_rs::auth::RequireRoles;
 /// use axum::{Router, routing::get, middleware};
-/// 
+///
 /// let admin_routes = Router::new()
 ///     .route("/admin/users", get(list_users))
 ///     .layer(RequireRoles::new(vec!["admin"]));
@@ -127,7 +125,7 @@ impl RequireRoles {
             require_all: false,
         }
     }
-    
+
     /// Create a new RequireRoles middleware requiring all of the specified roles
     pub fn all(roles: Vec<impl Into<String>>) -> Self {
         Self {
@@ -135,80 +133,112 @@ impl RequireRoles {
             require_all: true,
         }
     }
-    
-    /// Middleware function
-    pub async fn middleware(
-        roles: Vec<String>,
-        require_all: bool,
-        config: axum::extract::State<AuthConfig>,
-        request: Request,
-        next: Next,
-    ) -> impl IntoResponse {
-        // Extract Authorization header
-        let auth_header = request
-            .headers()
-            .get("Authorization")
-            .and_then(|value| value.to_str().ok());
-        
-        let token = match auth_header {
-            Some(header) if header.starts_with("Bearer ") => {
-                &header[7..]
-            }
-            _ => {
-                return (
-                    StatusCode::UNAUTHORIZED,
-                    Json(AuthErrorResponse {
-                        code: "MISSING_TOKEN".to_string(),
-                        message: "Authorization header missing or invalid".to_string(),
-                    }),
-                ).into_response();
-            }
-        };
-        
-        // Verify token
-        let claims = match verify_access_token(token, &config) {
-            Ok(claims) => claims,
-            Err(_) => {
-                return (
-                    StatusCode::UNAUTHORIZED,
-                    Json(AuthErrorResponse {
-                        code: "INVALID_TOKEN".to_string(),
-                        message: "Invalid or expired token".to_string(),
-                    }),
-                ).into_response();
-            }
-        };
-        
-        // Check roles
-        let has_required_roles = if require_all {
-            roles.iter().all(|role| claims.roles.contains(role))
-        } else {
-            roles.iter().any(|role| claims.roles.contains(role))
-        };
-        
-        if !has_required_roles {
-            return (
-                StatusCode::FORBIDDEN,
-                Json(AuthErrorResponse {
-                    code: "FORBIDDEN".to_string(),
-                    message: format!(
-                        "Required roles: {:?} ({})",
-                        roles,
-                        if require_all { "all" } else { "any" }
-                    ),
-                }),
-            ).into_response();
+}
+
+impl<S> Layer<S> for RequireRoles {
+    type Service = RequireRolesService<S>;
+
+    fn layer(&self, inner: S) -> Self::Service {
+        RequireRolesService {
+            inner,
+            roles: self.roles.clone(),
+            require_all: self.require_all,
         }
-        
-        next.run(request).await
     }
 }
 
-/// Extension trait for Router to easily add auth protection
-pub trait AuthRouterExt {
-    /// Protect all routes with authentication
-    fn require_auth(self, config: AuthConfig) -> Self;
-    
-    /// Protect all routes requiring specific roles
-    fn require_roles(self, config: AuthConfig, roles: Vec<&str>, require_all: bool) -> Self;
+#[derive(Clone)]
+pub struct RequireRolesService<S> {
+    inner: S,
+    roles: Vec<String>,
+    require_all: bool,
+}
+
+impl<S> Service<Request> for RequireRolesService<S>
+where
+    S: Service<Request, Response = axum::response::Response> + Send + Clone + 'static,
+    S::Future: Send + 'static,
+{
+    type Response = S::Response;
+    type Error = S::Error;
+    type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
+
+    fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        self.inner.poll_ready(cx)
+    }
+
+    fn call(&mut self, req: Request) -> Self::Future {
+        let roles = self.roles.clone();
+        let require_all = self.require_all;
+        let mut inner = self.inner.clone();
+
+        Box::pin(async move {
+            let config = req
+                .extensions()
+                .get::<AuthConfig>()
+                .cloned()
+                .unwrap_or_else(AuthConfig::from_env);
+
+            // Check for claims already decoded by RequireAuth
+            let claims = if let Some(claims) = req.extensions().get::<Claims>() {
+                claims.clone()
+            } else {
+                // Fallback: Decode token manually
+                let auth_header = req
+                    .headers()
+                    .get(AUTHORIZATION)
+                    .and_then(|v| v.to_str().ok());
+
+                let token = match auth_header {
+                    Some(h) if h.starts_with("Bearer ") => &h[7..],
+                    _ => {
+                        return Ok(unauthorized_response(
+                            "MISSING_TOKEN",
+                            "Authorization header missing",
+                        ))
+                    }
+                };
+
+                match verify_access_token(token, &config) {
+                    Ok(c) => c,
+                    Err(_) => {
+                        return Ok(unauthorized_response(
+                            "INVALID_TOKEN",
+                            "Invalid or expired token",
+                        ))
+                    }
+                }
+            };
+
+            let has_roles = if require_all {
+                roles.iter().all(|r| claims.roles.contains(r))
+            } else {
+                roles.iter().any(|r| claims.roles.contains(r))
+            };
+
+            if !has_roles {
+                return Ok((
+                    StatusCode::FORBIDDEN,
+                    Json(AuthErrorResponse {
+                        code: "FORBIDDEN".to_string(),
+                        message: format!("Required roles: {:?}", roles),
+                    }),
+                )
+                    .into_response());
+            }
+
+            inner.call(req).await
+        })
+    }
+}
+
+fn unauthorized_response(code: &str, message: &str) -> axum::response::Response {
+    (
+        StatusCode::UNAUTHORIZED,
+        Json(AuthErrorResponse {
+            code: code.to_string(),
+            message: message.to_string(),
+        }),
+    )
+        .into_response()
 }
