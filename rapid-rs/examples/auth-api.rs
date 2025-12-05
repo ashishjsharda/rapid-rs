@@ -1,4 +1,6 @@
 //! Auth API Example
+//! Run:
+//!   cargo run --example auth-api
 
 use axum::{middleware::from_fn_with_state, response::IntoResponse};
 use rapid_rs::auth::{
@@ -141,14 +143,14 @@ async fn main() {
     println!("  curl -X POST http://localhost:3000/auth/register -H \"Content-Type: application/json\" -d \"{{\\\"email\\\":\\\"user@example.com\\\",\\\"password\\\":\\\"SecurePass123\\\",\\\"name\\\":\\\"Basic Joe\\\"}}\"");
     println!();
     println!("> Test Admin Route (Should fail with code 403 Forbidden):");
-    println!("   curl -X GET http://localhost:3000/middleware/admin -H \"Authorization: Bearer <access_token>\"");
+    println!("  curl -X GET http://localhost:3000/middleware/admin -H \"Authorization: Bearer <access_token>\"");
     println!();
     println!("Scenario 2: Admin User");
     println!("> Register an ADMIN User:");
     println!("  curl -X POST http://localhost:3000/auth/register-admin -H \"Content-Type: application/json\" -d \"{{\\\"email\\\":\\\"admin@example.com\\\",\\\"password\\\":\\\"SecurePass123\\\",\\\"name\\\":\\\"Admin Joe\\\"}}\"");
     println!();
     println!("> Test Admin Route (Should succed):");
-    println!("   curl -X GET http://localhost:3000/middleware/admin -H \"Authorization: Bearer <access_token>\"");
+    println!("  curl -X GET http://localhost:3000/middleware/admin -H \"Authorization: Bearer <access_token>\"");
 
     println!();
 
