@@ -36,15 +36,40 @@
 //!         .unwrap();
 //! }
 //! ```
+//!
+//! ## With Database Migrations
+//!
+//! ```rust,ignore
+//! use rapid_rs::prelude::*;
+//! use rapid_rs::database::{connect_and_migrate, MigrationConfig};
+//!
+//! #[tokio::main]
+//! async fn main() {
+//!     let pool = connect_and_migrate(
+//!         "postgres://localhost/myapp",
+//!         MigrationConfig::default()
+//!     ).await.unwrap();
+//!     
+//!     App::new()
+//!         .auto_configure()
+//!         .run()
+//!         .await
+//!         .unwrap();
+//! }
+//! ```
 
 pub mod app;
 pub mod config;
+pub mod database;
 pub mod error;
 pub mod extractors;
 pub mod prelude;
 
 #[cfg(feature = "auth")]
 pub mod auth;
+
+#[cfg(feature = "testing")]
+pub mod testing;
 
 pub use app::App;
 pub use error::{ApiError, ApiResult};

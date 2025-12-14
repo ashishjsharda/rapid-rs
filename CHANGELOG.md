@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2025-12-14
+
+### Added
+- 🗄️ **Database Migrations Management**
+  - `MigrationConfig` for configuring migration behavior
+  - `connect_and_migrate()` for automatic database setup and migration
+  - `run_migrations()` for manual migration control
+  - `ensure_database_exists()` to create databases automatically
+  - Integration with sqlx's migration system
+  - Support for custom migration paths
+  - Automatic migration running on startup (configurable)
+- 🧪 **Testing Utilities**
+  - `TestClient` for easy API endpoint testing
+  - `TestResponse` with assertion helpers
+  - Support for authenticated requests in tests
+  - Database testing utilities (with `db-tests` feature)
+  - Integration test examples and best practices
+- 📚 **Additional Project Templates**
+  - GraphQL template with async-graphql integration
+  - gRPC template with tonic integration
+  - Updated CLI to support `rapid new myapi --template graphql|grpc`
+- 📖 **Comprehensive Documentation**
+  - `MIGRATIONS.md` - Complete migration guide with best practices
+  - `TESTING.md` - Testing guide with examples and patterns
+  - Updated README with Phase 2 completion status
+
+### Changed
+- Updated CLI to support GraphQL and gRPC templates
+- Enhanced project scaffolding with migration support
+- Improved documentation structure
+
+### Fixed
+- Database connection handling in test environments
+
 ## [0.2.0] - 2025-11-27
 
 ### Added
@@ -90,5 +124,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Compile-time type safety
 - Convention over configuration
 - Production-ready observability
-
-

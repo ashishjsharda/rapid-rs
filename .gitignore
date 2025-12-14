@@ -6,6 +6,7 @@ Cargo.lock
 
 # IDE
 .vscode/
+.qodo/
 .idea/
 *.swp
 *.swo
@@ -30,3 +31,5 @@ PUBLISHING*.md
 FILE_NAVIGATOR.md
 PROJECT_SUMMARY.md
 START_HERE.md
+QUICK_START.md
+PHASE2_SUMMARY.md
