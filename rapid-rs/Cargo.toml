@@ -39,3 +39,5 @@ async-trait = { version = "0.1", optional = true }
 default = ["swagger-ui", "auth"]
 swagger-ui = ["utoipa-swagger-ui"]
 auth = ["jsonwebtoken", "argon2", "async-trait"]
+testing = []  # Testing utilities
+db-tests = []  # Database testing utilities
