@@ -34,7 +34,7 @@ let response = client.get("/users").await;
 response.assert_status(StatusCode::OK);
 ```
 
-[See full changelog →](CHANGELOG.md)
+[See full changelog →](https://github.com/ashishjsharda/rapid-rs/blob/main/CHANGELOG.md)
 
 ---
 
@@ -204,7 +204,7 @@ cargo install sqlx-cli
 sqlx migrate add create_users
 ```
 
-[Learn more about migrations →](MIGRATIONS.md)
+[Learn more about migrations →](https://github.com/ashishjsharda/rapid-rs/blob/main/MIGRATIONS.md)
 
 ## Testing Your API
 
@@ -229,7 +229,7 @@ async fn test_create_user() {
 }
 ```
 
-[Learn more about testing →](TESTING.md)
+[Learn more about testing →](https://github.com/ashishjsharda/rapid-rs/blob/main/TESTING.md)
 
 ## Authentication
 
@@ -255,7 +255,7 @@ async fn main() {
 }
 ```
 
-[Learn more about authentication →](AUTH.md)
+[Learn more about authentication →](https://github.com/ashishjsharda/rapid-rs/blob/main/AUTH.md)
 
 ## Configuration
 
@@ -328,7 +328,7 @@ cd examples/rest-api
 cargo run
 ```
 
-[Contributing Guide →](CONTRIBUTING.md)
+[Contributing Guide →](https://github.com/ashishjsharda/rapid-rs/blob/main/CONTRIBUTING.md)
 
 ## Philosophy
 
