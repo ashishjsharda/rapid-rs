@@ -1,4 +1,4 @@
-# 🧪 Testing Guide
+#  Testing Guide
 
 rapid-rs includes comprehensive testing utilities to make testing your APIs easy and enjoyable.
 
