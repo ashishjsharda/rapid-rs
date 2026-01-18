@@ -1,28 +1,26 @@
-//! WebSocket handler trait
+//! WebSocket handler trait and implementations
 
 use async_trait::async_trait;
+use std::error::Error;
 use uuid::Uuid;
 
-use super::ConnectionInfo;
+use super::{ConnectionInfo, Message};
 
 pub type ConnectionId = Uuid;
-pub type HandlerResult = Result<(), Box<dyn std::error::Error + Send + Sync>>;
+pub type HandlerResult = Result<(), Box<dyn Error + Send + Sync>>;
 
-/// WebSocket event handler trait
+/// WebSocket message handler trait
 #[async_trait]
 pub trait WebSocketHandler: Send + Sync {
     /// Called when a new connection is established
-    async fn on_connect(&self, conn_id: ConnectionId, info: &ConnectionInfo) -> HandlerResult {
-        tracing::info!(connection_id = %conn_id, "New WebSocket connection");
+    async fn on_connect(&self, conn_id: ConnectionId, _info: &ConnectionInfo) -> HandlerResult {
+        tracing::info!(connection_id = %conn_id, "WebSocket connection established");
         Ok(())
     }
     
-    /// Called when a text message is received
-    async fn on_message(&self, conn_id: ConnectionId, message: String) -> HandlerResult;
-    
-    /// Called when a binary message is received
-    async fn on_binary(&self, conn_id: ConnectionId, data: Vec<u8>) -> HandlerResult {
-        tracing::debug!(connection_id = %conn_id, size = data.len(), "Binary message received");
+    /// Called when a message is received - NOW TAKES Message TYPE
+    async fn on_message(&self, conn_id: ConnectionId, message: Message) -> HandlerResult {
+        tracing::debug!(connection_id = %conn_id, "Received message: {:?}", message);
         Ok(())
     }
     
@@ -31,21 +29,29 @@ pub trait WebSocketHandler: Send + Sync {
         tracing::info!(connection_id = %conn_id, "WebSocket connection closed");
         Ok(())
     }
-    
-    /// Called on connection error
-    async fn on_error(&self, conn_id: ConnectionId, error: Box<dyn std::error::Error + Send + Sync>) {
-        tracing::error!(connection_id = %conn_id, error = %error, "WebSocket error");
-    }
 }
 
-/// Example handler implementation
+/// Default echo handler implementation
 pub struct EchoHandler;
 
 #[async_trait]
 impl WebSocketHandler for EchoHandler {
-    async fn on_message(&self, conn_id: ConnectionId, message: String) -> HandlerResult {
-        tracing::debug!(connection_id = %conn_id, message = %message, "Echo handler received message");
-        // In a real implementation, you would send the message back
+    async fn on_message(&self, conn_id: ConnectionId, message: Message) -> HandlerResult {
+        tracing::info!(connection_id = %conn_id, "Echo: {:?}", message);
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[tokio::test]
+    async fn test_echo_handler() {
+        let handler = EchoHandler;
+        let conn_id = Uuid::new_v4();
+        let message = Message::text("test");
+        
+        assert!(handler.on_message(conn_id, message).await.is_ok());
     }
 }

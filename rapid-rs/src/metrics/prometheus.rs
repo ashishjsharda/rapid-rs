@@ -1,22 +1,16 @@
 //! Prometheus metrics exporter
 
-#[cfg(feature = "metrics")]
-use axum::{
-    routing::get,
-    Router,
-};
-#[cfg(feature = "metrics")]
+#[cfg(feature = "observability")]
+use axum::{routing::get, Router};
+#[cfg(feature = "observability")]
 use metrics_exporter_prometheus::{Matcher, PrometheusBuilder, PrometheusHandle};
-#[cfg(feature = "metrics")]
+#[cfg(feature = "observability")]
 use std::time::Duration;
 
 /// Metrics configuration
 #[derive(Debug, Clone)]
 pub struct MetricsConfig {
-    /// Endpoint path for metrics
     pub endpoint: String,
-    
-    /// Histogram buckets for latency metrics
     pub latency_buckets: Vec<f64>,
 }
 
@@ -32,27 +26,27 @@ impl Default for MetricsConfig {
 }
 
 /// Metrics exporter
-#[cfg(feature = "metrics")]
+#[cfg(feature = "observability")]
 pub struct MetricsExporter {
     handle: PrometheusHandle,
     config: MetricsConfig,
 }
 
-#[cfg(feature = "metrics")]
+#[cfg(feature = "observability")]
 impl MetricsExporter {
-    /// Create a new metrics exporter
     pub fn new() -> Self {
         Self::with_config(MetricsConfig::default())
     }
     
-    /// Create with custom configuration
     pub fn with_config(config: MetricsConfig) -> Self {
         let builder = PrometheusBuilder::new();
         
-        let builder = builder.set_buckets_for_metric(
-            Matcher::Full("http_request_duration_seconds".to_string()),
-            &config.latency_buckets,
-        ).unwrap();
+        let builder = builder
+            .set_buckets_for_metric(
+                Matcher::Full("http_request_duration_seconds".to_string()),
+                &config.latency_buckets,
+            )
+            .unwrap();
         
         let handle = builder
             .install_recorder()
@@ -63,12 +57,10 @@ impl MetricsExporter {
         Self { handle, config }
     }
     
-    /// Get metrics as text
     pub fn render(&self) -> String {
         self.handle.render()
     }
     
-    /// Create routes for metrics endpoint
     pub fn routes(&self) -> Router {
         let handle = self.handle.clone();
         
@@ -82,7 +74,7 @@ impl MetricsExporter {
     }
 }
 
-#[cfg(feature = "metrics")]
+#[cfg(feature = "observability")]
 impl Default for MetricsExporter {
     fn default() -> Self {
         Self::new()
@@ -90,51 +82,79 @@ impl Default for MetricsExporter {
 }
 
 /// Record an HTTP request
-#[cfg(feature = "metrics")]
+#[cfg(feature = "observability")]
 pub fn record_request(method: &str, path: &str, status_code: u16, duration: Duration) {
     use metrics::{counter, histogram};
     
-    let labels = [
-        ("method", method.to_string()),
-        ("path", path.to_string()),
-        ("status", status_code.to_string()),
-    ];
+    // Correct syntax for metrics 0.22
+    counter!("http_requests_total",
+        "method" => method.to_string(),
+        "path" => path.to_string(),
+        "status" => status_code.to_string()
+    ).increment(1);
     
-    // Increment request counter
-    counter!("http_requests_total", &labels).increment(1);
+    histogram!("http_request_duration_seconds",
+        "method" => method.to_string(),
+        "path" => path.to_string(),
+        "status" => status_code.to_string()
+    ).record(duration.as_secs_f64());
     
-    // Record request duration
-    histogram!("http_request_duration_seconds", &labels).record(duration.as_secs_f64());
-    
-    // Record status code distribution
     if status_code >= 500 {
-        counter!("http_requests_errors_total", &labels).increment(1);
+        counter!("http_requests_errors_total",
+            "method" => method.to_string(),
+            "path" => path.to_string(),
+            "status" => status_code.to_string()
+        ).increment(1);
     }
 }
 
-/// Record a custom metric
-#[cfg(feature = "metrics")]
-pub fn record_counter(name: &str, value: u64, labels: &[(&str, String)]) {
+#[cfg(feature = "observability")]
+pub fn record_counter(name: &'static str, value: u64, labels: &[(&'static str, String)]) {
     use metrics::counter;
-    counter!(name, labels).increment(value);
+    
+    if labels.is_empty() {
+        counter!(name).increment(value);
+    } else {
+        // Build labels dynamically
+        let mut c = counter!(name);
+        for (key, val) in labels {
+            c = counter!(name, *key => val.clone());
+        }
+        c.increment(value);
+    }
 }
 
-/// Record a gauge metric
-#[cfg(feature = "metrics")]
-pub fn record_gauge(name: &str, value: f64, labels: &[(&str, String)]) {
+#[cfg(feature = "observability")]
+pub fn record_gauge(name: &'static str, value: f64, labels: &[(&'static str, String)]) {
     use metrics::gauge;
-    gauge!(name, labels).set(value);
+    
+    if labels.is_empty() {
+        gauge!(name).set(value);
+    } else {
+        let mut g = gauge!(name);
+        for (key, val) in labels {
+            g = gauge!(name, *key => val.clone());
+        }
+        g.set(value);
+    }
 }
 
-/// Record a histogram metric
-#[cfg(feature = "metrics")]
-pub fn record_histogram(name: &str, value: f64, labels: &[(&str, String)]) {
+#[cfg(feature = "observability")]
+pub fn record_histogram(name: &'static str, value: f64, labels: &[(&'static str, String)]) {
     use metrics::histogram;
-    histogram!(name, labels).record(value);
+    
+    if labels.is_empty() {
+        histogram!(name).record(value);
+    } else {
+        let mut h = histogram!(name);
+        for (key, val) in labels {
+            h = histogram!(name, *key => val.clone());
+        }
+        h.record(value);
+    }
 }
 
-/// Middleware for automatic request metrics
-#[cfg(feature = "metrics")]
+#[cfg(feature = "observability")]
 pub async fn metrics_middleware(
     request: axum::extract::Request,
     next: axum::middleware::Next,
@@ -154,19 +174,15 @@ pub async fn metrics_middleware(
 }
 
 #[cfg(test)]
-#[cfg(feature = "metrics")]
+#[cfg(feature = "observability")]
 mod tests {
     use super::*;
     
     #[test]
     fn test_metrics_exporter() {
         let exporter = MetricsExporter::new();
-        
-        // Record some metrics
         record_counter("test_counter", 1, &[("label", "value".to_string())]);
         record_gauge("test_gauge", 42.0, &[]);
-        
-        // Render metrics
         let output = exporter.render();
         assert!(output.contains("test_counter"));
     }

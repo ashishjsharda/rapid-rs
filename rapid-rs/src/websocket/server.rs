@@ -3,44 +3,38 @@
 use axum::{
     extract::{
         ws::{Message as WsMessage, WebSocket, WebSocketUpgrade},
-        ConnectInfo, State,
+        State,
     },
     response::IntoResponse,
     routing::get,
     Router,
 };
 use futures::{sink::SinkExt, stream::StreamExt};
-use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
-use super::{handler::WebSocketHandler, room::RoomManager, ConnectionInfo};
+use super::{handler::WebSocketHandler, room::RoomManager, ConnectionInfo, Message};
 
 /// WebSocket server configuration
 #[derive(Debug, Clone)]
 pub struct WebSocketConfig {
-    /// Maximum message size in bytes
     pub max_message_size: usize,
-    
-    /// Ping interval in seconds
-    pub ping_interval_seconds: u64,
-    
-    /// Connection timeout in seconds
-    pub timeout_seconds: u64,
+    pub ping_interval_secs: u64,
+    pub timeout_secs: u64,
 }
 
 impl Default for WebSocketConfig {
     fn default() -> Self {
         Self {
-            max_message_size: 1024 * 1024, // 1MB
-            ping_interval_seconds: 30,
-            timeout_seconds: 300, // 5 minutes
+            max_message_size: 64 * 1024,
+            ping_interval_secs: 30,
+            timeout_secs: 60,
         }
     }
 }
 
-/// WebSocket server state
+/// WebSocket server
 pub struct WebSocketServer {
     config: WebSocketConfig,
     handler: Arc<RwLock<Option<Arc<dyn WebSocketHandler>>>>,
@@ -48,12 +42,10 @@ pub struct WebSocketServer {
 }
 
 impl WebSocketServer {
-    /// Create a new WebSocket server
     pub fn new() -> Self {
         Self::with_config(WebSocketConfig::default())
     }
     
-    /// Create a new WebSocket server with custom config
     pub fn with_config(config: WebSocketConfig) -> Self {
         Self {
             config,
@@ -62,23 +54,19 @@ impl WebSocketServer {
         }
     }
     
-    /// Set the WebSocket handler
-    pub async fn set_handler<H: WebSocketHandler + 'static>(&self, handler: H) {
-        let mut h = self.handler.write().await;
-        *h = Some(Arc::new(handler));
+    pub async fn set_handler(&self, handler: impl WebSocketHandler + 'static) {
+        *self.handler.write().await = Some(Arc::new(handler));
     }
     
-    /// Get room manager
     pub fn room_manager(&self) -> Arc<RoomManager> {
-        Arc::clone(&self.room_manager)
+        self.room_manager.clone()
     }
     
-    /// Create routes for the WebSocket server
     pub fn routes(&self) -> Router {
         let state = WebSocketServerState {
             config: self.config.clone(),
-            handler: Arc::clone(&self.handler),
-            room_manager: Arc::clone(&self.room_manager),
+            handler: self.handler.clone(),
+            room_manager: self.room_manager.clone(),
         };
         
         Router::new()
@@ -100,27 +88,19 @@ struct WebSocketServerState {
     room_manager: Arc<RoomManager>,
 }
 
-/// WebSocket upgrade handler
 async fn websocket_handler(
     ws: WebSocketUpgrade,
-    ConnectInfo(addr): ConnectInfo<SocketAddr>,
     State(state): State<WebSocketServerState>,
 ) -> impl IntoResponse {
-    tracing::info!("WebSocket connection from {}", addr);
-    
-    ws.on_upgrade(move |socket| handle_socket(socket, addr, state))
+    ws.on_upgrade(move |socket| handle_socket(socket, state))
 }
 
-/// Handle individual WebSocket connection
-async fn handle_socket(socket: WebSocket, addr: SocketAddr, state: WebSocketServerState) {
+async fn handle_socket(socket: WebSocket, state: WebSocketServerState) {
     let connection_id = Uuid::new_v4();
-    
-    let mut conn_info = ConnectionInfo::new(connection_id);
-    conn_info.remote_addr = Some(addr.to_string());
+    let conn_info = ConnectionInfo::new(connection_id);
     
     tracing::info!(connection_id = %connection_id, "WebSocket connection established");
     
-    // Call on_connect handler
     if let Some(handler) = state.handler.read().await.as_ref() {
         if let Err(e) = handler.on_connect(connection_id, &conn_info).await {
             tracing::error!(connection_id = %connection_id, error = %e, "Connection handler error");
@@ -130,80 +110,72 @@ async fn handle_socket(socket: WebSocket, addr: SocketAddr, state: WebSocketServ
     
     let (mut sender, mut receiver) = socket.split();
     
-    // Handle incoming messages
-    let handler_clone = Arc::clone(&state.handler);
-    let room_manager = Arc::clone(&state.room_manager);
+    while let Some(msg) = receiver.next().await {
+        match msg {
+            Ok(WsMessage::Text(text)) => {
+                tracing::debug!(connection_id = %connection_id, "Received text: {}", text);
+                
+                if let Some(handler) = state.handler.read().await.as_ref() {
+                    let message = Message::text(text);
+                    
+                    if let Err(e) = handler.on_message(connection_id, message).await {
+                        tracing::error!(connection_id = %connection_id, error = %e, "Message handler error");
+                    }
+                }
+            }
+            Ok(WsMessage::Binary(data)) => {
+                tracing::debug!(connection_id = %connection_id, "Received binary: {} bytes", data.len());
+                
+                if let Some(handler) = state.handler.read().await.as_ref() {
+                    // Convert binary to JSON message
+                    let message = Message::json(serde_json::json!({
+                        "type": "binary",
+                        "size": data.len()
+                    }));
+                    
+                    if let Err(e) = handler.on_message(connection_id, message).await {
+                        tracing::error!(connection_id = %connection_id, error = %e, "Binary handler error");
+                    }
+                }
+            }
+            Ok(WsMessage::Ping(data)) => {
+                if let Err(e) = sender.send(WsMessage::Pong(data)).await {
+                    tracing::error!(connection_id = %connection_id, error = %e, "Failed to send pong");
+                    break;
+                }
+            }
+            Ok(WsMessage::Pong(_)) => {}
+            Ok(WsMessage::Close(_)) => {
+                tracing::info!(connection_id = %connection_id, "WebSocket close received");
+                break;
+            }
+            Err(e) => {
+                tracing::error!(connection_id = %connection_id, error = %e, "WebSocket error");
+                break;
+            }
+        }
+    }
     
-    tokio::spawn(async move {
-        while let Some(msg) = receiver.next().await {
-            match msg {
-                Ok(WsMessage::Text(text)) => {
-                    tracing::debug!(connection_id = %connection_id, "Received text message");
-                    
-                    if let Some(handler) = handler_clone.read().await.as_ref() {
-                        if let Err(e) = handler.on_message(connection_id, text.clone()).await {
-                            tracing::error!(
-                                connection_id = %connection_id,
-                                error = %e,
-                                "Message handler error"
-                            );
-                        }
-                    }
-                }
-                Ok(WsMessage::Binary(data)) => {
-                    tracing::debug!(connection_id = %connection_id, "Received binary message");
-                    
-                    if let Some(handler) = handler_clone.read().await.as_ref() {
-                        if let Err(e) = handler.on_binary(connection_id, data).await {
-                            tracing::error!(
-                                connection_id = %connection_id,
-                                error = %e,
-                                "Binary handler error"
-                            );
-                        }
-                    }
-                }
-                Ok(WsMessage::Close(_)) => {
-                    tracing::info!(connection_id = %connection_id, "WebSocket closed by client");
-                    break;
-                }
-                Ok(WsMessage::Ping(_)) | Ok(WsMessage::Pong(_)) => {
-                    // Handle ping/pong automatically
-                }
-                Err(e) => {
-                    tracing::error!(connection_id = %connection_id, error = %e, "WebSocket error");
-                    break;
-                }
-            }
-        }
-        
-        // Cleanup on disconnect
-        room_manager.remove_from_all_rooms(connection_id).await;
-        
-        if let Some(handler) = handler_clone.read().await.as_ref() {
-            if let Err(e) = handler.on_disconnect(connection_id).await {
-                tracing::error!(
-                    connection_id = %connection_id,
-                    error = %e,
-                    "Disconnect handler error"
-                );
-            }
-        }
-        
-        tracing::info!(connection_id = %connection_id, "WebSocket connection closed");
-    });
+    if let Some(handler) = state.handler.read().await.as_ref() {
+        let _ = handler.on_disconnect(connection_id).await;
+    }
+    
+    tracing::info!(connection_id = %connection_id, "WebSocket connection closed");
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     
+    #[test]
+    fn test_websocket_config() {
+        let config = WebSocketConfig::default();
+        assert_eq!(config.max_message_size, 64 * 1024);
+    }
+    
     #[tokio::test]
-    async fn test_websocket_server_creation() {
+    async fn test_websocket_server() {
         let server = WebSocketServer::new();
-        let routes = server.routes();
-        
-        // Basic test that routes are created
-        assert!(true);
+        let _routes = server.routes();
     }
 }

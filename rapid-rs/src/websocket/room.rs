@@ -101,13 +101,17 @@ impl RoomManager {
     /// List all rooms
     pub async fn list_rooms(&self) -> Vec<RoomInfo> {
         let rooms = self.rooms.read().await;
-        rooms
-            .values()
-            .map(|room| RoomInfo {
+        let mut result = Vec::new();
+        
+        for room in rooms.values() {
+            let conn_count = room.connections.read().await.len();
+            result.push(RoomInfo {
                 id: room.id.clone(),
-                connection_count: room.connections.len(),
-            })
-            .collect()
+                connection_count: conn_count,
+            });
+        }
+        
+        result
     }
 }
 
@@ -132,8 +136,8 @@ impl Room {
         }
     }
     
-    pub fn add_connection(&self, conn_id: ConnectionId) {
-        let mut connections = self.connections.blocking_write();
+    pub async fn add_connection(&self, conn_id: ConnectionId) {
+        let mut connections = self.connections.write().await;
         connections.insert(conn_id);
     }
     

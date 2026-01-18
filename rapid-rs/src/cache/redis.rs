@@ -1,8 +1,6 @@
 //! Redis cache backend implementation
 
 #[cfg(feature = "cache-redis")]
-use async_trait::async_trait;
-#[cfg(feature = "cache-redis")]
 use redis::AsyncCommands;
 #[cfg(feature = "cache-redis")]
 use serde::{de::DeserializeOwned, Serialize};
@@ -14,7 +12,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
 
 #[cfg(feature = "cache-redis")]
-use super::{CacheBackend, CacheConfig, CacheStats};
+use super::{CacheConfig, CacheStats};
 #[cfg(feature = "cache-redis")]
 use crate::error::ApiError;
 
@@ -29,7 +27,6 @@ pub struct RedisCache {
 
 #[cfg(feature = "cache-redis")]
 impl RedisCache {
-    /// Create a new Redis cache
     pub async fn new(redis_url: &str, _config: CacheConfig) -> Result<Self, ApiError> {
         let client = redis::Client::open(redis_url)
             .map_err(|e| ApiError::InternalServerError(format!("Failed to create Redis client: {}", e)))?;
@@ -46,16 +43,11 @@ impl RedisCache {
         })
     }
     
-    /// Get a connection
     async fn get_connection(&self) -> redis::aio::ConnectionManager {
         self.connection_manager.lock().await.clone()
     }
-}
-
-#[cfg(feature = "cache-redis")]
-#[async_trait]
-impl CacheBackend for RedisCache {
-    async fn get<T: DeserializeOwned>(&self, key: &str) -> Result<Option<T>, ApiError> {
+    
+    pub async fn get<T: DeserializeOwned>(&self, key: &str) -> Result<Option<T>, ApiError> {
         let mut conn = self.get_connection().await;
         
         match conn.get::<_, Option<Vec<u8>>>(key).await {
@@ -79,7 +71,7 @@ impl CacheBackend for RedisCache {
         }
     }
     
-    async fn set<T: Serialize + Send + Sync>(
+    pub async fn set<T: Serialize + Send + Sync>(
         &self,
         key: &str,
         value: &T,
@@ -92,7 +84,8 @@ impl CacheBackend for RedisCache {
         
         let mut conn = self.get_connection().await;
         
-        conn.set_ex(key, bytes, ttl.as_secs() as usize)
+        // Fix: u64 not usize, and add type annotation
+        conn.set_ex::<_, _, ()>(key, bytes, ttl.as_secs())
             .await
             .map_err(|e| ApiError::InternalServerError(
                 format!("Redis set error: {}", e)
@@ -101,10 +94,10 @@ impl CacheBackend for RedisCache {
         Ok(())
     }
     
-    async fn delete(&self, key: &str) -> Result<(), ApiError> {
+    pub async fn delete(&self, key: &str) -> Result<(), ApiError> {
         let mut conn = self.get_connection().await;
         
-        conn.del(key)
+        conn.del::<_, ()>(key)
             .await
             .map_err(|e| ApiError::InternalServerError(
                 format!("Redis delete error: {}", e)
@@ -113,7 +106,7 @@ impl CacheBackend for RedisCache {
         Ok(())
     }
     
-    async fn exists(&self, key: &str) -> Result<bool, ApiError> {
+    pub async fn exists(&self, key: &str) -> Result<bool, ApiError> {
         let mut conn = self.get_connection().await;
         
         conn.exists(key)
@@ -123,11 +116,11 @@ impl CacheBackend for RedisCache {
             ))
     }
     
-    async fn clear(&self) -> Result<(), ApiError> {
+    pub async fn clear(&self) -> Result<(), ApiError> {
         let mut conn = self.get_connection().await;
         
         redis::cmd("FLUSHDB")
-            .query_async(&mut conn)
+            .query_async::<_, ()>(&mut conn)
             .await
             .map_err(|e| ApiError::InternalServerError(
                 format!("Redis clear error: {}", e)
@@ -136,7 +129,7 @@ impl CacheBackend for RedisCache {
         Ok(())
     }
     
-    async fn stats(&self) -> Result<CacheStats, ApiError> {
+    pub async fn stats(&self) -> Result<CacheStats, ApiError> {
         let hits = self.hits.load(Ordering::Relaxed);
         let misses = self.misses.load(Ordering::Relaxed);
         let total = hits + misses;
@@ -148,7 +141,6 @@ impl CacheBackend for RedisCache {
         
         let mut conn = self.get_connection().await;
         
-        // Get approximate key count
         let entries: u64 = redis::cmd("DBSIZE")
             .query_async(&mut conn)
             .await
@@ -169,25 +161,21 @@ mod tests {
     use super::*;
     
     #[tokio::test]
-    #[ignore] // Requires Redis server
+    #[ignore]
     async fn test_redis_cache() {
         let cache = RedisCache::new("redis://127.0.0.1/", CacheConfig::default())
             .await
             .unwrap();
         
-        // Set a value
         cache.set("test_key", &"test_value", Duration::from_secs(60))
             .await
             .unwrap();
         
-        // Get the value
         let value: Option<String> = cache.get("test_key").await.unwrap();
         assert_eq!(value, Some("test_value".to_string()));
         
-        // Delete the value
         cache.delete("test_key").await.unwrap();
         
-        // Verify it's gone
         let value: Option<String> = cache.get("test_key").await.unwrap();
         assert_eq!(value, None);
     }

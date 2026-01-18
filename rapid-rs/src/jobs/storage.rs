@@ -68,27 +68,31 @@ impl JobStorage for InMemoryJobStorage {
     async fn fetch_next_job(&self) -> Result<Option<(JobMetadata, Value)>, ApiError> {
         let mut jobs = self.jobs.write().await;
         
-        // Find highest priority pending job
+        // Find highest priority pending job - collect IDs and metadata, not references
         let mut pending_jobs: Vec<_> = jobs
             .iter()
             .filter(|(_, (metadata, _))| {
                 metadata.status == JobStatus::Pending
                     && metadata.scheduled_at.map_or(true, |t| t <= chrono::Utc::now())
             })
+            .map(|(id, (metadata, _))| (*id, metadata.priority))
             .collect();
         
-        pending_jobs.sort_by(|a, b| b.1 .0.priority.cmp(&a.1 .0.priority));
+        pending_jobs.sort_by(|a, b| b.1.cmp(&a.1));
         
-        if let Some((job_id, (metadata, payload))) = pending_jobs.first() {
-            let result = Some(((*metadata).clone(), payload.clone()));
-            
-            // Update status to running
-            if let Some((meta, pay)) = jobs.get_mut(*job_id) {
-                meta.status = JobStatus::Running;
-                meta.started_at = Some(chrono::Utc::now());
+        if let Some((job_id, _)) = pending_jobs.first() {
+            // Now we can safely get mutable reference
+            if let Some((metadata, payload)) = jobs.get_mut(job_id) {
+                let result = Some((metadata.clone(), payload.clone()));
+                
+                // Update status to running
+                metadata.status = JobStatus::Running;
+                metadata.started_at = Some(chrono::Utc::now());
+                
+                Ok(result)
+            } else {
+                Ok(None)
             }
-            
-            Ok(result)
         } else {
             Ok(None)
         }
