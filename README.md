@@ -5,7 +5,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/rapid-rs.svg)](https://crates.io/crates/rapid-rs)
 [![Documentation](https://docs.rs/rapid-rs/badge.svg)](https://docs.rs/rapid-rs)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/ashishjsharda/rapid-rs/blob/main/LICENSE-MIT)
 
 ---
 
@@ -21,7 +21,7 @@
 - **🎛️ Feature Flags** - A/B testing and gradual rollouts
 - **🏢 Multi-Tenancy** - SaaS-ready tenant isolation
 
-[See full changelog](#changelog)
+[See full changelog](https://github.com/ashishjsharda/rapid-rs/blob/main/CHANGELOG.md)
 
 ---
 
@@ -279,20 +279,20 @@ rapid-rs
 
 - **[Getting Started Guide](https://docs.rs/rapid-rs/latest/rapid_rs/#getting-started)**
 - **[API Reference](https://docs.rs/rapid-rs)**
-- **[Examples](examples/)**
-- **[Changelog](CHANGELOG.md)**
+- **[Examples](https://github.com/ashishjsharda/rapid-rs/tree/main/examples)**
+- **[Changelog](https://github.com/ashishjsharda/rapid-rs/blob/main/CHANGELOG.md)**
 
 ---
 
 ## 🤝 Contributing
 
-Contributions welcome! Please read our [Contributing Guide](CONTRIBUTING.md) first.
+Contributions welcome! Please read our [Contributing Guide](https://github.com/ashishjsharda/rapid-rs/blob/main/CONTRIBUTING.md) first.
 
 ---
 
 ## 📜 License
 
-MIT License - see [LICENSE](LICENSE) file for details
+MIT License - see [LICENSE-MIT](https://github.com/ashishjsharda/rapid-rs/blob/main/LICENSE-MIT) or [LICENSE-APACHE](https://github.com/ashishjsharda/rapid-rs/blob/main/LICENSE-APACHE) file for details
 
 ---
 
