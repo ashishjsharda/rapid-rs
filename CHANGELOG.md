@@ -5,6 +5,68 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-03-22
+
+### 🎉 Phase 4 Complete - Full-Stack Features
+
+This release adds 5 major features completing the Phase 4 roadmap.
+
+### ✨ Added
+
+#### GraphQL Support (`graphql` feature)
+- **async-graphql integration** - Full GraphQL support via async-graphql v7
+- **graphql_routes()** - Axum router with POST `/graphql` endpoint
+- **GraphiQL Playground** - Interactive browser IDE at `/graphql/playground`
+- **SchemaBuilder** - Convenience wrapper for async-graphql schema building
+- **GraphQLConfig** - Configure endpoint paths, max depth, and complexity limits
+- **Re-exports** - `Object`, `SimpleObject`, `InputObject`, `Enum`, `Union`, `Schema`, `Context`
+
+#### Email/SMS Notifications (`notifications` feature)
+- **NotificationService** - Unified interface for all notification channels
+- **SmtpEmailProvider** - SMTP email via lettre with TLS support
+- **EmailConfig** - Builder for SMTP host, port, credentials, from address
+- **EmailMessage** - Email with plain text + optional HTML body, CC support
+- **Multipart emails** - Automatic `text/plain` + `text/html` multipart construction
+
+#### SMS Notifications (`notifications-sms` feature)
+- **TwilioSmsProvider** - SMS via Twilio REST API
+- **SmsConfig** - Twilio Account SID, Auth Token, and from number
+- **SmsMessage** - SMS content with optional from number override
+
+#### File Uploads (`file-uploads` feature)
+- **FileUploadService** - Multipart file upload processing
+- **UploadConfig** - Max file size, allowed MIME types, upload directory, max files per request
+- **LocalStorage** - Save uploaded files to local filesystem with UUID-based naming
+- **StorageBackend** - Enum-based dispatch for multiple storage backends
+- **upload_routes()** - Axum router with POST `/upload` multipart handler
+- **UploadedFile** - Metadata struct (id, original name, stored name, content type, size, URL)
+
+#### Admin Dashboard (`admin` feature)
+- **admin_routes()** - Mounts admin UI and API at configurable base path (default: `/admin`)
+- **AdminConfig** - Configure secret key, base path, app name, version
+- **Embedded HTML Dashboard** - Dark-themed SPA with real-time stats (no external deps)
+- **GET /admin** - Full admin dashboard web UI
+- **GET /admin/stats** - JSON stats (uptime, request count, error rate, system info, enabled features)
+- **GET /admin/health** - Detailed health check endpoint
+- **Atomic counters** - `increment_request_count()`, `increment_error_count()` helpers
+
+#### More Database Backends
+- **SQLite** (`db-sqlite` feature) - `sqlite::connect()`, `sqlite::connect_in_memory()`, `sqlite::connect_file()`
+- **MySQL** (`db-mysql` feature) - `mysql::connect()`, `mysql::connect_with_pool_size()`
+
+### 🔧 Changed
+- Bumped version from `0.4.0` to `0.5.0`
+- Added `async-graphql`, `async-graphql-axum`, `lettre`, `reqwest` to workspace dependencies
+- Added `axum/multipart` feature activation via `file-uploads` feature flag
+- Added `sqlx/sqlite` and `sqlx/mysql` activation via `db-sqlite` and `db-mysql` feature flags
+- Updated `full` feature to include all Phase 4 features
+- Updated architecture diagram and feature flags section in README
+
+### 📝 Documentation
+- New `examples/graphql-api.rs` demonstrating GraphQL schema and routes
+- Updated README with Phase 4 feature showcases and code examples
+- Updated roadmap: Phase 4 marked complete ✅
+
 ## [0.4.1] - 2026-01-19
 
 ### Fixed

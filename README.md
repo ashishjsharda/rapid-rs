@@ -9,17 +9,15 @@
 
 ---
 
-## ✨ What's New in v0.4.0
+## ✨ What's New in v0.5.0
 
-**🎉 Phase 3 Complete - Enterprise Features!**
+**🎉 Phase 4 Complete - Full-Stack Features!**
 
-- **⚡ Background Jobs** - Redis-backed async job queue with priorities and scheduling
-- **🔌 WebSocket** - Full-duplex real-time communication with room management
-- **💾 Caching** - Multi-backend caching (Memory + Redis) with TTL support
-- **🛡️ Rate Limiting** - Protect your APIs with configurable rate limits
-- **📊 Metrics** - Prometheus integration for observability
-- **🎛️ Feature Flags** - A/B testing and gradual rollouts
-- **🏢 Multi-Tenancy** - SaaS-ready tenant isolation
+- **🔷 GraphQL** - First-class GraphQL support with async-graphql + interactive playground
+- **📧 Email/SMS** - SMTP email and Twilio SMS notifications out of the box
+- **📁 File Uploads** - Multipart uploads with local storage backend
+- **🖥️ Admin Dashboard** - Embedded web UI with real-time stats and health monitoring
+- **🗄️ More Databases** - SQLite and MySQL backends in addition to PostgreSQL
 
 [See full changelog](https://github.com/ashishjsharda/rapid-rs/blob/main/CHANGELOG.md)
 
@@ -230,6 +228,79 @@ async fn get_data(tenant: TenantExtractor) -> Json<Data> {
 }
 ```
 
+### GraphQL (`graphql` feature) 🆕
+
+```rust
+use rapid_rs::graphql::{graphql_routes, EmptyMutation, EmptySubscription, Object, Schema, SimpleObject};
+
+struct QueryRoot;
+
+#[Object]
+impl QueryRoot {
+    async fn hello(&self) -> &str {
+        "Hello from rapid-rs GraphQL!"
+    }
+}
+
+#[derive(SimpleObject)]
+struct User { id: i32, name: String }
+
+let schema = Schema::build(QueryRoot, EmptyMutation, EmptySubscription).finish();
+// Playground at http://localhost:3000/graphql/playground
+app.merge(graphql_routes(schema));
+```
+
+### Email/SMS Notifications (`notifications` feature) 🆕
+
+```rust
+use rapid_rs::notifications::{NotificationService, EmailConfig, EmailMessage};
+
+let service = NotificationService::new()
+    .with_email(
+        EmailConfig::new()
+            .with_smtp_host("smtp.gmail.com")
+            .with_port(587)
+            .with_tls()
+            .with_credentials("user@gmail.com", "app-password")
+            .with_from("My App <noreply@myapp.com>")
+    );
+
+service.send_email(
+    EmailMessage::new("user@example.com", "Welcome!", "Thanks for signing up!")
+        .with_html("<h1>Thanks for signing up!</h1>")
+).await?;
+```
+
+### File Uploads (`file-uploads` feature) 🆕
+
+```rust
+use rapid_rs::uploads::{FileUploadService, UploadConfig, upload_routes};
+use std::sync::Arc;
+
+let service = Arc::new(FileUploadService::new(
+    UploadConfig::new()
+        .with_max_size(10 * 1024 * 1024)       // 10 MB
+        .with_allowed_types(vec!["image/jpeg", "image/png"])
+        .with_upload_dir("./uploads")
+));
+
+// POST /upload - accepts multipart/form-data
+app.merge(upload_routes(service));
+```
+
+### Admin Dashboard (`admin` feature) 🆕
+
+```rust
+use rapid_rs::admin::{AdminConfig, admin_routes};
+
+// Embedded dashboard at /admin
+app.merge(admin_routes(
+    AdminConfig::new()
+        .with_app_name("My API")
+        .with_secret_key("admin-secret")
+));
+```
+
 ---
 
 ## 📦 Feature Flags
@@ -238,19 +309,26 @@ Choose the features you need:
 
 ```toml
 [dependencies]
-rapid-rs = { version = "0.4", features = ["full"] }
+rapid-rs = { version = "0.5", features = ["full"] }
 
 # Or pick specific features:
-rapid-rs = { version = "0.4", features = [
-    "auth",           # JWT authentication
-    "jobs",           # Background jobs
-    "websocket",      # WebSocket support
-    "cache",          # In-memory caching
-    "cache-redis",    # Redis caching
-    "rate-limit",     # Rate limiting
-    "observability",  # Prometheus metrics
-    "feature-flags",  # Feature flags
-    "multi-tenancy",  # Multi-tenant support
+rapid-rs = { version = "0.5", features = [
+    "auth",               # JWT authentication
+    "jobs",               # Background jobs
+    "websocket",          # WebSocket support
+    "cache",              # In-memory caching
+    "cache-redis",        # Redis caching
+    "rate-limit",         # Rate limiting
+    "observability",      # Prometheus metrics
+    "feature-flags",      # Feature flags
+    "multi-tenancy",      # Multi-tenant support
+    "graphql",            # GraphQL API support
+    "notifications",      # Email notifications
+    "notifications-sms",  # SMS via Twilio
+    "file-uploads",       # Multipart file uploads
+    "admin",              # Admin dashboard
+    "db-sqlite",          # SQLite backend
+    "db-mysql",           # MySQL backend
 ]}
 ```
 
@@ -261,7 +339,7 @@ rapid-rs = { version = "0.4", features = [
 ```
 rapid-rs
 ├── Core Framework (Axum + Tower)
-├── Database (SQLx + Migrations)
+├── Database (SQLx + Migrations + SQLite + MySQL)
 ├── Auth (JWT + Argon2)
 ├── Validation (validator crate)
 ├── Jobs (Async Queue + Scheduler)
@@ -270,7 +348,11 @@ rapid-rs
 ├── Rate Limiting (Token Bucket)
 ├── Metrics (Prometheus)
 ├── Feature Flags (A/B Testing)
-└── Multi-Tenancy (SaaS Ready)
+├── Multi-Tenancy (SaaS Ready)
+├── GraphQL (async-graphql + Playground)
+├── Notifications (SMTP Email + Twilio SMS)
+├── File Uploads (Multipart + Local Storage)
+└── Admin Dashboard (Embedded UI + Stats API)
 ```
 
 ---
@@ -329,12 +411,12 @@ Built with:
 - Feature flags
 - Multi-tenancy
 
-### Phase 4 🚧 (Planned for v0.5.0)
+### Phase 4 ✅ (v0.5.0)
 - GraphQL support
 - Email/SMS notifications
 - File uploads
 - Admin dashboard
-- More database backends
+- More database backends (SQLite + MySQL)
 
 ### Phase 5 📋 (Future)
 - Serverless deployment

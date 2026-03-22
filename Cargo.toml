@@ -35,3 +35,8 @@ utoipa-swagger-ui = { version = "6.0", features = ["axum"] }
 jsonwebtoken = "9.3"
 argon2 = "0.5"
 async-trait = "0.1"
+
+# Phase 4 dependencies
+async-graphql = { version = "6", features = ["chrono", "uuid"] }
+lettre = { version = "0.11", features = ["tokio1", "tokio1-native-tls", "builder", "smtp-transport"], default-features = false }
+reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }

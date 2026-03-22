@@ -1,6 +1,6 @@
 [package]
 name = "rapid-rs"
-version = "0.4.0"
+version = "0.5.0"
 edition.workspace = true
 license.workspace = true
 authors.workspace = true
@@ -37,6 +37,11 @@ async-trait = { version = "0.1", optional = true }
 
 # Phase 3 dependencies
 dashmap = { version = "5.5", optional = true }
+
+# Phase 4 dependencies
+async-graphql = { workspace = true, optional = true }
+lettre = { workspace = true, optional = true }
+reqwest = { workspace = true, optional = true }
 futures = { version = "0.3", optional = true }
 tokio-tungstenite = { version = "0.21", optional = true }
 moka = { version = "0.12", features = ["future"], optional = true }
@@ -64,6 +69,15 @@ observability = ["prometheus", "metrics", "metrics-exporter-prometheus"]
 feature-flags = []
 multi-tenancy = []
 
+# Phase 4 features
+graphql = ["dep:async-graphql"]
+notifications = ["dep:lettre", "async-trait"]
+notifications-sms = ["notifications", "dep:reqwest"]
+file-uploads = ["axum/multipart", "async-trait"]
+admin = []
+db-sqlite = ["sqlx/sqlite"]
+db-mysql = ["sqlx/mysql"]
+
 # Enable all features
 full = [
     "swagger-ui",
@@ -77,5 +91,12 @@ full = [
     "rate-limit",
     "observability",
     "feature-flags",
-    "multi-tenancy"
+    "multi-tenancy",
+    "graphql",
+    "notifications",
+    "notifications-sms",
+    "file-uploads",
+    "admin",
+    "db-sqlite",
+    "db-mysql",
 ]

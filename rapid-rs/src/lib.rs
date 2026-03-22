@@ -1,4 +1,4 @@
-//! # rapid-rs v0.4.0 - Phase 3 Complete
+//! # rapid-rs v0.5.0 - Phase 4 Complete
 //!
 //! Zero-config, batteries-included web framework for Rust.
 //! FastAPI meets Spring Boot, powered by Axum.
@@ -38,6 +38,19 @@ pub mod feature_flags;
 
 #[cfg(feature = "multi-tenancy")]
 pub mod multi_tenancy;
+
+// Phase 4 features
+#[cfg(feature = "graphql")]
+pub mod graphql;
+
+#[cfg(feature = "notifications")]
+pub mod notifications;
+
+#[cfg(feature = "file-uploads")]
+pub mod uploads;
+
+#[cfg(feature = "admin")]
+pub mod admin;
 
 pub use app::App;
 pub use error::{ApiError, ApiResult};
