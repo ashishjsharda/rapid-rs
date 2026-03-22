@@ -53,7 +53,7 @@ async fn main() {
 
 ```toml
 [dependencies]
-rapid-rs = "0.4"
+rapid-rs = "0.5"
 tokio = { version = "1", features = ["full"] }
 ```
 

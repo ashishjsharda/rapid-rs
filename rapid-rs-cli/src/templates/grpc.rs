@@ -10,7 +10,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-rapid-rs = "0.2"
+rapid-rs = "0.5"
 tokio = {{ version = "1", features = ["full"] }}
 tonic = "0.11"
 prost = "0.12"

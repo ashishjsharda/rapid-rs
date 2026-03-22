@@ -315,10 +315,10 @@ This is a major release adding 7 production-ready enterprise features!
 rapid-rs = { version = "0.3", features = ["auth"] }
 
 # New (add features as needed)
-rapid-rs = { version = "0.4", features = ["auth", "jobs", "cache", "websocket"] }
+rapid-rs = { version = "0.5", features = ["auth", "jobs", "cache", "websocket"] }
 
 # Or enable everything
-rapid-rs = { version = "0.4", features = ["full"] }
+rapid-rs = { version = "0.5", features = ["full"] }
 ```
 
 **Feature Flags:**
